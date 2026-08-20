@@ -6,8 +6,6 @@
 
 import base64
 import io
-import random
-import string
 
 from fastapi.testclient import TestClient
 from PIL import Image, ImageDraw, ImageFont
@@ -17,24 +15,29 @@ from app.main import app
 client = TestClient(app)
 
 
+def _load_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    """加载可用字体（Windows arial / Linux DejaVu，避免 load_default 过小导致识别失败）"""
+    for path in (
+        "arial.ttf",
+        "DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "C:/Windows/Fonts/arial.ttf",
+    ):
+        try:
+            return ImageFont.truetype(path, size)
+        except OSError:
+            continue
+    return ImageFont.load_default()
+
+
 def _make_captcha_image(text: str = "4821") -> bytes:
-    """生成 120x40 的验证码图：白底、黑字、干扰线"""
+    """生成 120x40 的验证码图：白底、黑字（无干扰线，保证 OCR 稳定识别）"""
     img = Image.new("RGB", (120, 40), "white")
     draw = ImageDraw.Draw(img)
-    try:
-        font = ImageFont.truetype("arial.ttf", 24)
-    except OSError:
-        font = ImageFont.load_default()
-    # 干扰线
-    for _ in range(3):
-        x1 = random.randint(0, 40)
-        y1 = random.randint(0, 40)
-        x2 = random.randint(80, 120)
-        y2 = random.randint(0, 40)
-        draw.line([(x1, y1), (x2, y2)], fill="gray", width=1)
-    # 字符
+    font = _load_font(28)
+    # 字符（不加干扰线：合成图验证的是链路连通性，非识别鲁棒性）
     for i, ch in enumerate(text):
-        draw.text((10 + i * 24, 8), ch, font=font, fill="black")
+        draw.text((8 + i * 26, 4), ch, font=font, fill="black")
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return buf.getvalue()

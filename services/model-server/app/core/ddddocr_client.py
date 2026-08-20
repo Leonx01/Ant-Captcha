@@ -50,13 +50,17 @@ def ocr(image_b64: str, beta: bool = False) -> tuple[str, float]:
 
 
 def det(image_b64: str) -> list[dict]:
-    """目标检测：返回 [{x, y, confidence}, ...]（取每个框中心点）"""
+    """目标检测：返回 [{x, y, confidence}, ...]（取每个框中心点）
+
+    ddddocr 的 detection() 返回 [x1, y1, x2, y2] 四元组（无置信度），
+    置信度统一给 1.0；M2 接入自定义检测模型时可返回真实置信度。
+    """
     with _lock:
         boxes = _get_det().detection(_decode_b64(image_b64))
     targets = []
     for box in boxes:
-        x1, y1, x2, y2, conf = box
-        targets.append({"x": (x1 + x2) // 2, "y": (y1 + y2) // 2, "confidence": float(conf)})
+        x1, y1, x2, y2 = box
+        targets.append({"x": (x1 + x2) // 2, "y": (y1 + y2) // 2, "confidence": 1.0})
     return targets
 
 

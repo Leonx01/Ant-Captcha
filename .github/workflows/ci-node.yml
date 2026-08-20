@@ -6,6 +6,7 @@ on:
       - "apps/api-server/**"
       - "contracts/**"
       - "pnpm-workspace.yaml"
+      - "pnpm-lock.yaml"
   pull_request:
     paths:
       - "apps/api-server/**"
@@ -14,9 +15,6 @@ on:
 jobs:
   build-test:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/api-server
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -26,7 +24,8 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-          cache-dependency-path: apps/api-server/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
+      # workspace lockfile 在根目录，安装必须在根目录执行
       - run: pnpm install --frozen-lockfile
-      - run: pnpm build
-      - run: pnpm test
+      - run: pnpm --filter @ant-captcha/api-server build
+      - run: pnpm --filter @ant-captcha/api-server test

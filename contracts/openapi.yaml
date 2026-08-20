@@ -142,7 +142,7 @@ components:
       properties:
         image:
           type: string
-          description: 图片 base64（不含 data: 前缀）
+          description: "图片 base64（不含 data: 前缀）"
         request_id:
           type: string
           description: 平台传入的请求 ID，透传返回
