@@ -1,22 +1,21 @@
 # Ant-Captcha 仓库布局（Repository Layout）
 
-> 版本：v0.5 · 多语言 monorepo：Node.js（平台）+ Python（推理服务），pnpm 与 uv 各自独立 lockfile。
+> 版本：v0.6（精简版）· 多语言 monorepo：Node.js（平台）+ Python（推理服务），pnpm 与 uv 各自独立 lockfile。
+> 原则：**只保留核心链路**——`packages/`（SDK）、`tools/`（管理 CLI/训练脚本）等后置，见 §5。
 
 ---
 
-## 顶层结构
+## 1. 顶层结构
 
 ```
 Ant-Captcha/
 ├── apps/                        # Node.js 应用（pnpm workspace）
 ├── services/                    # Python 服务（uv workspace）
-├── contracts/                   # ★ 契约：两端的唯一共识
-├── packages/                    # 共享 Node 包（可选）
-├── examples/                    # 参考集成（非核心交付）
-├── tools/                       # 开发/训练工具
-├── docker/                      # 容器编排与配置
-├── docs/                        # 文档（需求/架构/布局/ADR）
-├── .github/                     # CI/CD
+├── contracts/                   # ★ 契约：两端唯一共识
+├── examples/                    # 参考集成（curl / Playwright）
+├── docker/                      # docker compose 编排
+├── docs/                        # 文档
+├── .github/                     # CI
 ├── README.md
 ├── LICENSE                      # MIT
 └── .gitignore
@@ -24,38 +23,36 @@ Ant-Captcha/
 
 ---
 
-## 逐目录说明
+## 2. 逐目录说明
 
 ### `apps/api-server` — 打码平台服务（Node.js + TypeScript + Cordis）
 
 ```
 apps/api-server/
 ├── src/
-│   ├── http/                    # HTTP 层
-│   │   ├── routes/solve.ts      # POST /api/solve 路由
-│   │   ├── auth.ts              # token 鉴权（服务）
+│   ├── http/
+│   │   ├── routes/solve.ts      # POST /api/solve
+│   │   ├── auth.ts              # 共享密钥校验
 │   │   └── middleware.ts        # 限流、请求 ID、日志
 │   ├── solvers/                 # Solver 插件（内置）
-│   │   ├── numeric.ts           # type 1xxx 数英/中文/计算题
+│   │   ├── text.ts              # type 1xxx 数英/中文/计算题
 │   │   ├── slider.ts            # type 2xxx 滑块缺口
 │   │   ├── click.ts             # type 3xxx 点选（det + VLM）
 │   │   ├── voice.ts             # type 4xxx 语音（ASR）
 │   │   └── custom.ts            # type 9xxx 定制类型注册器
-│   ├── providers/               # Provider 插件
+│   ├── providers/
 │   │   ├── local.ts             # 本地推理服务 client（契约生成）
 │   │   └── bailian.ts           # 百炼 VLM/ASR client（AK 注入）
 │   ├── registry/                # Solver 注册表（type ↔ 定义）
-│   ├── events/                  # waterfall 事件声明（preprocess/route/postprocess）
-│   ├── metrics/                 # 指标与结构化日志
-│   ├── gen/                     # ★ 契约生成代码（不入库手改）
-│   └── index.ts                 # 入口
+│   ├── events/                  # waterfall 事件（preprocess/route/postprocess）
+│   ├── gen/                     # ★ 契约生成代码（禁手改）
+│   └── index.ts
 ├── cordis.yml                   # 插件树组装（配置驱动）
 ├── package.json
-├── tsconfig.json
 └── Dockerfile                   # node:20-slim
 ```
 
-### `services/model-server` — 自建推理服务（Python FastAPI + ddddocr）
+### `services/model-server` — 推理服务（Python FastAPI + ddddocr）
 
 ```
 services/model-server/
@@ -67,16 +64,15 @@ services/model-server/
 │   │   ├── slide.py             # POST /v1/captcha/slide
 │   │   └── custom.py            # POST /v1/custom/{model_id}
 │   ├── core/
-│   │   ├── ddddocr_client.py    # ddddocr 封装（单例 + 并发控制）
-│   │   └── model_registry.py    # 定制 ONNX 模型注册表（热加载/LRU）
-│   ├── schemas/                 # ★ 契约生成模型（不入库手改）
+│   │   ├── ddddocr_client.py    # ddddocr 封装（单例 + 锁/池）
+│   │   └── model_registry.py    # 定制 ONNX 模型注册表（按需加载）
+│   ├── schemas/                 # ★ 契约生成模型（禁手改）
 │   └── health.py                # /healthz /readyz
 ├── models/                      # 模型文件（.gitignore，下载脚本或 LFS）
 │   └── README.md                # 模型来源与下载说明
-├── tests/                       # pytest 单元/契约测试
+├── tests/                       # pytest 单元/集成测试
 ├── pyproject.toml               # uv 管理
-├── Dockerfile                   # python:3.11-slim（+ GPU 变体）
-└── docker-entrypoint.sh
+└── Dockerfile                   # python:3.11-slim
 ```
 
 ### `contracts` — 契约（唯一来源）
@@ -90,80 +86,65 @@ contracts/
     └── generate-python.sh       # → services/model-server/app/schemas/
 ```
 
-### `packages` — 共享 Node 包（可选，渐进启用）
-
-```
-packages/
-└── client/                      # 官方 HTTP 客户端 SDK（npm 包，可选交付）
-    ├── src/
-    ├── package.json
-    └── README.md
-```
-
-### `examples` — 参考集成（非核心，展示"调用方如何用"）
+### `examples` — 参考集成（展示"调用方如何用"）
 
 ```
 examples/
-├── curl/                        # 协议示例：solve.sh（各 type 一个）
-│   └── solve-slider.sh
-├── playwright/                  # 浏览器自动化参考：取图 → solve → 执行
-│   └── login-flow.ts
-├── python/                      # Python 调用方示例
-│   └── solve.py
-└── mock-captcha/                # mock 验证码测试页（集成测试/演示用）
-    └── index.html
-```
-
-### `tools` — 开发/训练工具
-
-```
-tools/
-├── train/                       # 定制模型训练脚本（M2，可选交付）
-│   └── README.md
-├── trajectory/                  # 轨迹生成纯数据工具（可选模块）
-│   └── generate.ts
-└── manage/                      # CLI 管理：token 签发/吊销、type 列表（首发 CLI）
-    └── cli.ts
+├── curl/
+│   └── solve.sh                 # 协议示例（各 type 一个命令）
+├── playwright/
+│   └── login-flow.ts            # 取图 → solve → 执行
+└── mock-captcha/                # mock 验证码测试页/测试图（集成测试用）
 ```
 
 ### `docker` — 容器编排
 
 ```
 docker/
-├── docker-compose.yml           # api-server + model-server + mock-captcha
-└── .env.example                 # 全部环境变量样例（AK/token/端口）
+├── docker-compose.yml           # api-server + model-server
+└── .env.example                 # 环境变量样例（TOKEN/AK/端口）
 ```
 
-### `.github/workflows` — CI 按路径分流
+### `.github/workflows` — CI（最小两路）
 
 ```
 .github/workflows/
-├── ci-api-server.yml            # paths: apps/api-server/**, contracts/** → pnpm lint+test+build
-├── ci-model-server.yml          # paths: services/model-server/**, contracts/** → uv pytest + docker build
-├── ci-contracts.yml             # paths: contracts/** → 契约校验 + 双端生成验证 + 契约测试
-└── ci-docs.yml                  # paths: docs/**, README.md → 文档链接检查（可选）
-```
-
-### `docs` — 文档
-
-```
-docs/
-├── requirements.md              # 需求文档 v0.5（含 API 协议规范）
-├── architecture.md              # 架构设计（含 ADR 摘要）
-├── repository-layout.md         # 本文档
-└── adr/                         # 完整 ADR（按需拆分）
-    └── 0001-product-form.md     # 产品形态决策：打码平台服务 vs SDK
+├── ci-node.yml                  # paths: apps/api-server/**, contracts/** → pnpm lint+test+build
+└── ci-python.yml                # paths: services/model-server/**, contracts/** → uv pytest + docker build
 ```
 
 ---
 
-## 关键约定
+## 3. 关键约定
 
 | 约定 | 说明 |
 |---|---|
-| 契约唯一来源 | `contracts/openapi.yaml`，生成代码禁手改（目录内放 `DO NOT EDIT` 说明） |
-| 独立 lockfile | pnpm-workspace.yaml 只管 `apps/`、`packages/`；uv 只管 `services/` |
-| CI 路径分流 | 改 Python 不触发 Node 构建，契约变更触发全量 |
+| 契约唯一来源 | `contracts/openapi.yaml`，生成代码禁手改 |
+| 独立 lockfile | pnpm-workspace.yaml 只管 `apps/`；uv 只管 `services/` |
+| CI 路径分流 | 改 Python 不触发 Node 构建，契约变更触发两端 |
 | 模型文件不入库 | `services/model-server/models/` gitignore + 下载脚本 |
-| 密钥不入库 | 全部走环境变量 / 密钥库（.env.example 只给占位） |
+| 密钥不入库 | 全部走环境变量（`.env.example` 只给占位） |
 | 核心零浏览器 | 浏览器相关只允许出现在 `examples/` |
+
+---
+
+## 4. 目录规划 vs 里程碑
+
+| 目录 | 里程碑 | 说明 |
+|---|---|---|
+| `contracts/` | M0 | 先定契约再写两端 |
+| `apps/api-server/` | M0 骨架 → M1 核心 | M0 只留 http/auth/registry 空壳 |
+| `services/model-server/` | M0 骨架 → M1 核心 | M0 只留 health + 空端点 |
+| `examples/` | M1（curl）→ M2（playwright） | 随功能逐步补充 |
+| `docker/` | M0 | 第一天就要能 compose up |
+
+---
+
+## 5. 后置目录（现在不建）
+
+| 目录 | 触发条件 |
+|---|---|
+| `packages/client`（SDK） | 调用方超过 2 个语言时 |
+| `tools/manage`（管理 CLI） | 需要批量签发 token 时 |
+| `tools/train`（训练脚本） | 首次需要自己训模型时 |
+| `apps/web`（管理页） | 决定对外商业化时 |

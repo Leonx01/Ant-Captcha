@@ -4,9 +4,9 @@
 
 # Ant-Captcha 🐜
 
-**Ant-Captcha is a self-hosted CAPTCHA-solving platform for robotic process automation (RPA).**
+**Ant-Captcha is a self-hosted CAPTCHA-solving service for robotic process automation (RPA).**
 
-自托管打码平台：媒体进，答案出。
+自用打码服务：媒体进，答案出。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -16,7 +16,7 @@
 
 ## 📖 简介
 
-Ant-Captcha 是一套**可自托管的打码平台服务**：通过 HTTP API 接收验证码媒体（图片 / 音频 / 语义描述），返回结构化答案（文本 / 坐标 / 选择）。形态对标行业打码平台，但**完全自托管、自控成本、可定制**。
+Ant-Captcha 是一套**自用的打码服务**：通过 HTTP API 接收验证码媒体（图片 / 音频 / 语义描述），返回结构化答案（文本 / 坐标 / 选择）。自托管、自控成本、可针对具体验证码定制，从小往大慢慢长。
 
 **核心边界**：只做「媒体 → 答案」。不探索界面、不操作浏览器——取图、执行、校验全部由调用方负责，调用方与平台之间只隔一层 HTTP 协议，**语言无关、框架无关**。
 
@@ -33,7 +33,7 @@ Ant-Captcha 是一套**可自托管的打码平台服务**：通过 HTTP API 接
 
 | 文档 | 说明 |
 |---|---|
-| [需求文档](docs/requirements.md) | 完整需求 v0.5，含 API 协议规范与 type 代码表 |
+| [需求文档](docs/requirements.md) | 完整需求 v0.6，含 API 协议规范与 type 代码表 |
 | [架构设计](docs/architecture.md) | 分层架构、请求生命周期、设计决策（ADR） |
 | [仓库布局](docs/repository-layout.md) | monorepo 结构与关键约定 |
 
