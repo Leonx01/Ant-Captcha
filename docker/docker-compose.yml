@@ -1,0 +1,34 @@
+services:
+  api-server:
+    build:
+      context: ../apps/api-server
+    container_name: ant-captcha-api
+    ports:
+      - "${API_PORT:-8080}:8080"
+    environment:
+      - ANTCAPTCHA_TOKEN=${ANTCAPTCHA_TOKEN:?请在 .env 中配置 ANTCAPTCHA_TOKEN}
+      - MODEL_SERVER_URL=http://model-server:8000
+      - PORT=8080
+    depends_on:
+      model-server:
+        condition: service_healthy
+    networks:
+      - ant-captcha
+
+  model-server:
+    build:
+      context: ../services/model-server
+    container_name: ant-captcha-model
+    ports:
+      - "${MODEL_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ant-captcha
+
+networks:
+  ant-captcha:
+    driver: bridge

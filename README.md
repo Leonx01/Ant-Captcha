@@ -37,13 +37,32 @@ Ant-Captcha 是一套**自用的打码服务**：通过 HTTP API 接收验证码
 | [架构设计](docs/architecture.md) | 分层架构、请求生命周期、设计决策（ADR） |
 | [仓库布局](docs/repository-layout.md) | monorepo 结构与关键约定 |
 
-## 🚀 快速开始
-
-项目代码正在建设中，`Quick Start` 将在 M0 骨架完成后补充。
+## 🚀 快速开始（M0 骨架）
 
 ```bash
-# TODO: M0 后补充 docker compose up 一键起服务
+# 1. 配置密钥
+cp docker/.env.example docker/.env   # 填写 ANTCAPTCHA_TOKEN
+
+# 2. 一键起服务
+docker compose -f docker/docker-compose.yml up --build
+
+# 3. 调打码 API（M0 返回 10004 无此类型，M1 接入真实 Solver）
+curl -X POST http://localhost:8080/api/solve \
+  -H "Content-Type: application/json" \
+  -d '{"token":"你的TOKEN","type":"1001"}'
 ```
+
+**本地开发（不走 Docker）**：
+
+```bash
+# Node 平台服务
+cd apps/api-server && pnpm install && pnpm test && pnpm dev
+
+# Python 推理服务
+cd services/model-server && uv sync && uv run pytest && uv run uvicorn app.main:app --port 8000
+```
+
+> 注：本机 Windows 沙箱下 vitest/tsx 不可用，测试统一用 Node 24 原生 `node --test`（`--test-isolation=none`）。
 
 ## 📁 目录结构
 
@@ -52,11 +71,9 @@ Ant-Captcha/
 ├── apps/api-server/       # 打码平台服务（Node.js + Cordis）
 ├── services/model-server/ # 自建推理服务（Python FastAPI + ddddocr）
 ├── contracts/             # OpenAPI 契约（两端唯一共识）
-├── packages/              # 共享 Node 包（客户端 SDK 可选）
-├── examples/              # 参考集成（curl / Playwright / Python）
-├── tools/                 # 管理 CLI / 训练脚本
 ├── docker/                # docker compose 编排
 ├── docs/                  # 文档
+├── examples/              # 参考集成（后置）
 └── assets/                # Logo 等静态资源
 ```
 

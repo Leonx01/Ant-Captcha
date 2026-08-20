@@ -1,0 +1,13 @@
+// M0 插件树声明（配置驱动，M1 由 @deepseek-ai/cordis-plugin-loader 消费）。
+// 当前 M0 阶段以编程式注册等效实现；此文件作为配置的唯一书面来源。
+plugins:
+  - id: http-server
+    name: ./src/http/server.ts
+    config:
+      port: 8080
+  - id: auth
+    name: ./src/http/auth.ts
+    config: {}
+  - id: solve-route
+    name: ./src/http/routes/solve.ts
+    config: {}

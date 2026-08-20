@@ -1,0 +1,240 @@
+openapi: 3.0.3
+info:
+  title: Ant-Captcha Internal Contract
+  description: >
+    平台服务（apps/api-server）与自建推理服务（services/model-server）之间的唯一契约。
+    由 contracts/ 生成两端代码：Node 端 openapi-typescript client，Python 端 fastapi 校验模型。
+    破坏性变更必须升版本（v1 冻结后不静默改语义）。
+  version: 1.0.0
+servers:
+  - url: http://model-server:8000
+    description: 推理服务（docker compose 内网）
+paths:
+  /healthz:
+    get:
+      operationId: healthz
+      summary: 存活探针
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /readyz:
+    get:
+      operationId: readyz
+      summary: 就绪探针（模型加载状态）
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+        "503":
+          description: 未就绪（模型加载中/失败）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /v1/captcha/ocr:
+    post:
+      operationId: captchaOcr
+      summary: OCR 识别（数英/中文/计算题）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OcrRequest"
+      responses:
+        "200":
+          description: 识别结果
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OcrResponse"
+        "422":
+          description: 参数错误
+  /v1/captcha/det:
+    post:
+      operationId: captchaDet
+      summary: 目标检测（点选支撑）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DetRequest"
+      responses:
+        "200":
+          description: 检测结果
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DetResponse"
+        "422":
+          description: 参数错误
+  /v1/captcha/slide:
+    post:
+      operationId: captchaSlide
+      summary: 滑块缺口检测
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SlideRequest"
+      responses:
+        "200":
+          description: 缺口位置
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SlideResponse"
+        "422":
+          description: 参数错误
+  /v1/custom/{model_id}:
+    post:
+      operationId: customInfer
+      summary: 定制 ONNX 模型推理
+      parameters:
+        - name: model_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomRequest"
+      responses:
+        "200":
+          description: 推理结果
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomResponse"
+        "404":
+          description: 模型不存在
+        "422":
+          description: 参数错误
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok, not_ready, error]
+        models:
+          type: object
+          additionalProperties:
+            type: string
+          description: 模型名 → 状态（loaded/loading/error）
+    MediaImage:
+      type: object
+      required: [image]
+      properties:
+        image:
+          type: string
+          description: 图片 base64（不含 data: 前缀）
+        request_id:
+          type: string
+          description: 平台传入的请求 ID，透传返回
+    OcrRequest:
+      allOf:
+        - $ref: "#/components/schemas/MediaImage"
+        - type: object
+          properties:
+            beta:
+              type: boolean
+              description: 是否使用 beta 模型（默认 false）
+            charset:
+              type: string
+              description: 自定义字符范围（可选）
+    OcrResponse:
+      type: object
+      required: [text, confidence]
+      properties:
+        text:
+          type: string
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        request_id:
+          type: string
+    DetRequest:
+      allOf:
+        - $ref: "#/components/schemas/MediaImage"
+    DetResponse:
+      type: object
+      required: [targets]
+      properties:
+        targets:
+          type: array
+          items:
+            $ref: "#/components/schemas/Target"
+        request_id:
+          type: string
+    Target:
+      type: object
+      required: [x, y, confidence]
+      properties:
+        x:
+          type: integer
+        y:
+          type: integer
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+    SlideRequest:
+      type: object
+      required: [background_image, slide_image]
+      properties:
+        background_image:
+          type: string
+          description: 背景图 base64（需还原）
+        slide_image:
+          type: string
+          description: 滑块小图 base64
+        request_id:
+          type: string
+    SlideResponse:
+      type: object
+      required: [x, confidence]
+      properties:
+        x:
+          type: integer
+          description: 缺口横坐标（像素距离）
+        y:
+          type: integer
+          description: 缺口纵坐标（可选）
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        request_id:
+          type: string
+    CustomRequest:
+      allOf:
+        - $ref: "#/components/schemas/MediaImage"
+    CustomResponse:
+      type: object
+      required: [result, confidence]
+      properties:
+        result:
+          type: string
+          description: 模型输出（text 或坐标序列，按模型约定）
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        request_id:
+          type: string

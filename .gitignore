@@ -10,12 +10,20 @@ dist/
 build/
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
+uv.lock
+
+# 模型文件（大文件不入库，用脚本/LFS 下载）
+services/model-server/models/*.onnx
+services/model-server/models/*.pth
+services/model-server/models/*.bin
 
 # Node.js
 node_modules/
 npm-debug.log*
 yarn-error.log*
 .pnpm-store/
+*.tsbuildinfo
 
 # IDE / OS
 .vscode/

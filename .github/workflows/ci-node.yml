@@ -1,0 +1,32 @@
+name: CI Node
+
+on:
+  push:
+    paths:
+      - "apps/api-server/**"
+      - "contracts/**"
+      - "pnpm-workspace.yaml"
+  pull_request:
+    paths:
+      - "apps/api-server/**"
+      - "contracts/**"
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api-server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: apps/api-server/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm test
