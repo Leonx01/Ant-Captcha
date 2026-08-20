@@ -9,6 +9,16 @@
 自用打码服务：媒体进，答案出。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/Node.js-24-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Cordis](https://img.shields.io/badge/Cordis-4.0-4D6BFE?logo=deepseek&logoColor=white)](https://github.com/deepseek-ai/deepseek-harness)
+[![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)](https://www.python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.141-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![ddddocr](https://img.shields.io/badge/ddddocr-1.4-FF6F00?logo=opencv&logoColor=white)](https://github.com/sml2h3/ddddocr)
+[![Docker](https://img.shields.io/badge/Docker-compose-2496ED?logo=docker&logoColor=white)](https://www.docker.com)
+[![OpenAPI](https://img.shields.io/badge/OpenAPI-3.0-6BA539?logo=swagger&logoColor=white)](https://swagger.io/specification/)
+[![pnpm](https://img.shields.io/badge/pnpm-11-F69220?logo=pnpm&logoColor=white)](https://pnpm.io)
+[![uv](https://img.shields.io/badge/uv-0.12-2C7BE5?logo=astral&logoColor=white)](https://docs.astral.sh/uv/)
 
 </div>
 
@@ -28,6 +38,17 @@ Ant-Captcha 是一套**自用的打码服务**：通过 HTTP API 接收验证码
 - **定制类型**：针对具体验证码训练 ONNX 模型，注册后获得专属 type 代码（行业惯例，如「定制-xxx」）
 - **多后端**：本地推理（ddddocr）+ 百炼外部 API（VLM / ASR），配置切换与降级链
 - **协议友好**：HTTP 仅 POST，参数对齐行业惯例，现有打码用户可零成本迁移
+
+## 🛠️ 技术栈
+
+| 层 | 技术 |
+|---|---|
+| 平台服务（编排） | Node.js 24 · TypeScript 5.9 · [Cordis 4.0](https://github.com/deepseek-ai/deepseek-harness)（插件化服务/事件） |
+| 推理服务 | Python 3.11 · FastAPI · [ddddocr](https://github.com/sml2h3/ddddocr)（OCR/det/滑块/自定义 ONNX） |
+| 外部能力 | 阿里云百炼（VLM 语义点选 + ASR 语音） |
+| 契约 | OpenAPI 3.0（`contracts/openapi.yaml` 唯一来源，双端生成） |
+| 工程化 | pnpm workspace · uv · Docker Compose · GitHub Actions（路径分流 CI） |
+| 测试 | Node `node:test` · pytest · 契约对齐校验 |
 
 ## 📚 文档
 
