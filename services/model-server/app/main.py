@@ -32,4 +32,10 @@ async def readyz():
     return JSONResponse({"status": "ok", "models": {"ddddocr": "lazy"}})
 
 
+@app.post("/v1/custom/{model_id}")
+async def custom_infer(model_id: str):
+    """定制 ONNX 模型推理（M2 接入自定义模型注册表，M1 占位）"""
+    return JSONResponse({"code": 10008, "msg": f"model {model_id} not implemented yet (M2)"}, status_code=501)
+
+
 app.include_router(captcha.router, prefix="/v1/captcha")

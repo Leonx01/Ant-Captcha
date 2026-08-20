@@ -1,43 +1,30 @@
 name: CI Contracts
 
-# 契约是两端的唯一共识：变更必须通过两端校验
+# 契约是两端的唯一共识：变更必须通过实现对齐校验
 on:
   push:
     paths:
       - "contracts/**"
+      - "services/model-server/app/**"
   pull_request:
     paths:
       - "contracts/**"
+      - "services/model-server/app/**"
 
 jobs:
   validate:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/model-server
     steps:
       - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.12"
       - name: 校验 YAML 语法
-        run: python -c "import yaml; yaml.safe_load(open('contracts/openapi.yaml')); print('openapi.yaml OK')"
-      - name: 校验契约与 Python 端点对齐（M0 简化版）
-        working-directory: services/model-server
+        run: python -c "import yaml; yaml.safe_load(open('../../contracts/openapi.yaml', encoding='utf-8')); print('openapi.yaml YAML OK')"
+      - name: 契约 ↔ FastAPI 路由对齐
         run: |
-          python - <<'EOF'
-          import yaml
-          spec = yaml.safe_load(open('../../contracts/openapi.yaml'))
-          paths = set(spec['paths'].keys())
-          import ast, pathlib
-          main = pathlib.Path('app/main.py').read_text()
-          tree = ast.parse(main)
-          routes = set()
-          for node in ast.walk(tree):
-              if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) and node.target.id == 'app':
-                  continue
-          # 简化：检查契约路径都在 main.py 中出现
-          missing = [p for p in paths if p.replace('/v1', '/v1') not in main]
-          # healthz/readyz 契约 vs 实现
-          for p in paths:
-              if p not in main:
-                  missing.append(p)
-          if missing:
-              print('契约中未在 app/main.py 实现的路径:', missing)
-              raise SystemExit(1)
-          print('契约对齐 OK')
-          EOF
+          uv sync
+          uv run python scripts/contract_check.py
